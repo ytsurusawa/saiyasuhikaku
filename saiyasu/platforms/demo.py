@@ -11,6 +11,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any
 
+from ..matching import is_accessory
 from ..models import Offer
 from .base import PlatformAdapter, SearchContext
 from .spec import offer_from_dict
@@ -123,6 +124,38 @@ def base_price(query: str) -> int:
     return 3000 + (int(digest[8:16], 16) % 57) * 1000
 
 
+#: モール型(出店者が自由に出品する)サイト。互換アクセサリが紛れ込みやすい。
+MARKETPLACES = ("rakuten", "yahoo", "aupay", "qoo10")
+
+
+def _accessory_trap(query: str, platform: str, label: str) -> Offer | None:
+    """商品同定の動作確認用に、アクセサリ出品をサンプルへ1件混ぜる。
+
+    実際のモール検索でも「本体を探したのに互換ケースが並ぶ」ことは頻繁に起きる。
+    絞り込みが効いていることを画面で確認できるよう、デモにも同じ状況を再現する。
+    検索語自体がアクセサリを指している場合は混ぜない。
+    """
+    if platform not in MARKETPLACES:
+        return None
+    if is_accessory(query, f"{query} 保護ケース") is None:
+        return None  # 検索語にアクセサリ語が含まれる場合は本物なので混ぜない
+    price = max(880, int(base_price(query) * 0.04 / 10) * 10)
+    return offer_from_dict(
+        {
+            "title": f"{query} 用 保護ケース（サンプルデータ）",
+            "price": price,
+            "shop": "アクセサリ専門ストア",
+            "shipping": {"kind": "free"},
+            "points": [],
+            "delivery_days": 5,
+            "note": "本体ではありません",
+        },
+        platform=platform,
+        label=label,
+        source="demo",
+    )
+
+
 def demo_offers(query: str, platform: str, label: str, limit: int = 1) -> list[Offer]:
     """指定プラットフォームのサンプル出品を作る。"""
     profile = DEMO_PROFILES.get(platform)
@@ -146,6 +179,10 @@ def demo_offers(query: str, platform: str, label: str, limit: int = 1) -> list[O
             "note": profile.note,
         }
         offers.append(offer_from_dict(data, platform=platform, label=label, source="demo"))
+
+    trap = _accessory_trap(query, platform, label)
+    if trap is not None:
+        offers.append(trap)
     return offers
 
 

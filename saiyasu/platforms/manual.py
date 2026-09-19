@@ -47,7 +47,10 @@ class ManualAdapter(PlatformAdapter):
         entries = _load_all().get(self.key) or []
         if entries:
             return True, f"手動入力データ {len(entries)}件を使用"
-        return False, f"{self.label}は公開検索APIが無いため、手動入力データが無ければデモ値で表示します"
+        return False, (
+            f"{self.label}は公開検索APIが無く、手動入力データも未登録です"
+            f"（{os.environ.get('SAIYASU_MANUAL_OFFERS', DEFAULT_PATH)}）"
+        )
 
     def search(self, ctx: SearchContext) -> list[Offer]:
         entries = _load_all().get(self.key) or []

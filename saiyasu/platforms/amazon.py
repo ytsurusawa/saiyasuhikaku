@@ -30,6 +30,8 @@ TARGET = "com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems"
 
 RESOURCES = [
     "ItemInfo.Title",
+    "ItemInfo.ExternalIds",
+    "ItemInfo.ManufactureInfo",
     "Offers.Listings.Price",
     "Offers.Listings.Condition",
     "Offers.Listings.DeliveryInfo.IsFreeShippingEligible",
@@ -189,6 +191,11 @@ class AmazonAdapter(PlatformAdapter):
 
         merchant = (listing.get("MerchantInfo") or {}).get("Name") or "Amazon.co.jp"
 
+        item_info = item.get("ItemInfo") or {}
+        external = item_info.get("ExternalIds") or {}
+        eans = (external.get("EANs") or {}).get("DisplayValues") or []
+        model = ((item_info.get("ManufactureInfo") or {}).get("Model") or {}).get("DisplayValue")
+
         return Offer(
             platform=self.key,
             platform_label=self.label,
@@ -203,4 +210,6 @@ class AmazonAdapter(PlatformAdapter):
             condition=condition,  # type: ignore[arg-type]
             source="api",
             note="プライム対象" if prime else "",
+            jan=str(eans[0]) if eans else None,
+            model_number=str(model) if model else None,
         )

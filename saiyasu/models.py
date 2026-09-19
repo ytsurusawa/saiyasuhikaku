@@ -138,6 +138,14 @@ class Offer:
     source: str = "demo"  # "api" | "demo" | "manual"
     note: str = ""
 
+    # --- 商品同定のための識別子（取得できたものだけ） ---
+    jan: str | None = None
+    model_number: str | None = None
+
+    # --- matching.filter_offers が書き込む判定結果 ---
+    match_score: float = 1.0  # 検索語と商品名の一致度（0.0〜1.0）
+    suspect_price: bool = False  # 相場から大きく外れた価格か
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "platform": self.platform,
@@ -151,6 +159,10 @@ class Offer:
             "delivery_days": self.delivery_days,
             "source": self.source,
             "note": self.note,
+            "jan": self.jan,
+            "model_number": self.model_number,
+            "match_score": round(self.match_score, 3),
+            "suspect_price": self.suspect_price,
         }
 
 
@@ -280,6 +292,8 @@ class ComparisonResult:
     statuses: list[PlatformStatus]
     profile_summary: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    #: 商品同定の結果（matching.MatchReport）。除外した出品の内訳を持つ。
+    match_report: Any = None
 
     @property
     def best(self) -> RankedOffer | None:
@@ -311,6 +325,7 @@ class ComparisonResult:
             "warnings": self.warnings,
             "sticker_cheapest_platform": sticker.offer.platform_label if sticker else None,
             "savings_vs_worst": self.savings_vs_worst(),
+            "matching": self.match_report.to_dict() if self.match_report else None,
         }
 
     def verdict(self) -> str:
@@ -336,4 +351,9 @@ class ComparisonResult:
             )
         if any(r.breakdown.shipping_needs_check for r in self.ranked[:3]):
             parts.append("※上位に送料が確定していない出品があります。購入前にご確認ください。")
+        if best.offer.suspect_price:
+            parts.append(
+                "※この出品は価格が相場から大きく外れています。"
+                "同一商品かどうか（付属品のみ・並行輸入品でないか）を必ずご確認ください。"
+            )
         return " ".join(parts)

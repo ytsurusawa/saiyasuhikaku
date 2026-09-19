@@ -9,6 +9,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
 
+from .matching import DEFAULT_THRESHOLD, MatchReport, filter_offers
 from .models import ComparisonResult, Offer, PlatformStatus, RankedOffer
 from .platforms import AdapterError, PlatformAdapter, SearchContext, all_adapters
 from .platforms.demo import demo_offers
@@ -44,6 +45,8 @@ class Comparator:
         timeout: float = 8.0,
         min_price: int | None = None,
         max_price: int | None = None,
+        strict_matching: bool = True,
+        match_threshold: float = DEFAULT_THRESHOLD,
     ) -> ComparisonResult:
         query = (query or "").strip()
         profile = profile or PointProfile()
@@ -54,6 +57,7 @@ class Comparator:
                 statuses=[],
                 profile_summary=profile.summary(),
                 warnings=["商品名を入力してください。"],
+                match_report=MatchReport(),
             )
 
         wanted = set(platforms) if platforms else None
@@ -82,9 +86,21 @@ class Comparator:
                 "実データで比較するには各プラットフォームのAPIキーを設定してください。"
             )
 
-        ranked = self.rank(offers, profile=profile, per_platform=per_platform)
+        # 別商品を比べてしまわないよう、検索意図と一致しない出品を落とす
+        report = filter_offers(
+            query, offers, threshold=match_threshold, strict=strict_matching
+        )
+        warnings.extend(report.warnings())
+
+        ranked = self.rank(report.kept, profile=profile, per_platform=per_platform)
         if not ranked:
-            warnings.append("条件に合う出品が見つかりませんでした。検索語を短くしてお試しください。")
+            if report.excluded:
+                warnings.append(
+                    "検索語に一致する出品が残りませんでした。"
+                    "型番まで含めた正確な商品名で検索するか、検索語を短くしてお試しください。"
+                )
+            else:
+                warnings.append("条件に合う出品が見つかりませんでした。検索語を短くしてお試しください。")
 
         return ComparisonResult(
             query=query,
@@ -92,6 +108,7 @@ class Comparator:
             statuses=statuses,
             profile_summary=profile.summary(),
             warnings=warnings,
+            match_report=report,
         )
 
     # ------------------------------------------------------------------
@@ -184,7 +201,7 @@ class Comparator:
                     label=adapter.label,
                     ok=False,
                     source="none",
-                    message=reason,
+                    message=f"{reason}（--no-demo のため取得なし）" if reason else "取得なし",
                 ),
                 [],
             )
@@ -196,7 +213,7 @@ class Comparator:
                 ok=bool(offers),
                 offer_count=len(offers),
                 source="demo",
-                message=f"{reason}(サンプル表示)" if reason else "サンプル表示",
+                message=f"{reason}（サンプルデータで代替）" if reason else "サンプルデータ",
             ),
             offers,
         )

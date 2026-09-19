@@ -11,6 +11,7 @@ import json
 import sys
 
 from .comparator import Comparator
+from .config import load_dotenv
 from .models import ComparisonResult, RankedOffer
 from .platforms import PLATFORM_LABELS
 from .profile import PointProfile
@@ -57,6 +58,17 @@ def build_parser() -> argparse.ArgumentParser:
     other.add_argument("--remote", action="store_true", help="沖縄・離島など追加送料がかかる地域")
     other.add_argument("--used", action="store_true", help="中古(メルカリなど)も比較対象に含める")
     other.add_argument("--no-demo", action="store_true", help="サンプルデータへのフォールバックを無効化")
+    other.add_argument(
+        "--no-filter",
+        action="store_true",
+        help="商品同定による絞り込みを無効化(検索結果をそのまま並べる)",
+    )
+    other.add_argument(
+        "--match-threshold",
+        type=float,
+        default=0.6,
+        help="商品名の一致しきい値 0.0〜1.0(既定0.6)",
+    )
     other.add_argument("--json", action="store_true", help="結果をJSONで出力")
     return parser
 
@@ -87,6 +99,8 @@ def _row_cells(row: RankedOffer) -> list[str]:
     points = f"-{b.point_value_yen:,}円" if b.point_value_yen else "-"
     diff = "—" if row.is_best else f"+{row.diff_from_best:,}円"
     label = row.offer.platform_label + ("(中古)" if row.offer.condition != "new" else "")
+    if row.offer.suspect_price:
+        label += "⚠"
     return [
         f"{mark}{row.rank}",
         truncate(label, 22),
@@ -169,9 +183,25 @@ def render(result: ComparisonResult) -> str:
     out.append("─" * 60)
     out.append(render_details(result))
 
+    report = result.match_report
+    if report is not None and report.excluded:
+        out.append("\n■ 比較から除外した出品(検索語と一致しないため)")
+        for item in report.excluded[:10]:
+            out.append(
+                f"  × {item.offer.platform_label}: {truncate(item.offer.title, 40)}"
+                f"  [{item.reason_label}] {item.detail}"
+            )
+        if len(report.excluded) > 10:
+            out.append(f"  … 他{len(report.excluded) - 10}件")
+
     out.append("\n■ 取得状況")
     for status in result.statuses:
-        source = {"api": "実データ", "manual": "手動入力", "demo": "サンプル"}.get(status.source, status.source)
+        source = {
+            "api": "実データ",
+            "manual": "手動入力",
+            "demo": "サンプル",
+            "none": "取得なし",
+        }.get(status.source, status.source)
         detail = f" - {status.message}" if status.message else ""
         out.append(f"  [{source}] {status.label}: {status.offer_count}件{detail}")
 
@@ -184,6 +214,7 @@ def render(result: ComparisonResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()  # カレントディレクトリの .env があれば読み込む
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.query:
@@ -198,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
         per_platform=args.per_platform,
         limit_per_search=args.limit,
         timeout=args.timeout,
+        strict_matching=not args.no_filter,
+        match_threshold=args.match_threshold,
     )
 
     if args.json:

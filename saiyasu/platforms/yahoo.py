@@ -80,6 +80,7 @@ class YahooAdapter(PlatformAdapter):
             in_stock=bool(hit.get("inStock", True)),
             source="api",
             note=shipping.note if shipping.kind != "free" else "",
+            jan=str(hit.get("janCode")) if hit.get("janCode") else None,
         )
 
     @staticmethod

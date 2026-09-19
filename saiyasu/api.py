@@ -16,8 +16,11 @@ from pydantic import BaseModel, Field
 
 from . import __version__
 from .comparator import Comparator
+from .config import load_dotenv
 from .platforms import ADAPTERS
 from .profile import PointProfile
+
+load_dotenv()  # uvicorn 起動時に .env を読み込む
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -54,6 +57,8 @@ class CompareIn(BaseModel):
     per_platform: int = Field(1, ge=1, le=5)
     limit_per_search: int = Field(5, ge=1, le=20)
     allow_demo: bool = True
+    strict_matching: bool = Field(True, description="検索語と一致しない出品を除外するか")
+    match_threshold: float = Field(0.6, ge=0.0, le=1.0, description="商品名の一致しきい値")
 
 
 @app.get("/api/platforms")
@@ -89,6 +94,8 @@ def compare(payload: CompareIn) -> dict[str, Any]:
         platforms=payload.platforms,
         per_platform=payload.per_platform,
         limit_per_search=payload.limit_per_search,
+        strict_matching=payload.strict_matching,
+        match_threshold=payload.match_threshold,
     )
     return result.to_dict()
 

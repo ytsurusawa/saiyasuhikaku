@@ -46,10 +46,10 @@ class PlatformAdapter(ABC):
     def available(self) -> tuple[bool, str]:
         """APIを実行できる状態か。``(可否, 理由)`` を返す。"""
         if not self.has_public_api:
-            return False, f"{self.label}は公開検索APIが無いため、手動入力/CSV取り込みで比較します"
+            return False, f"{self.label}は公開検索APIが無いため、手動入力データが必要です"
         missing = [name for name in self.required_env if not os.environ.get(name)]
         if missing:
-            return False, f"{'、'.join(missing)} が未設定のためデモデータを使用します"
+            return False, f"{'、'.join(missing)} が未設定です"
         return True, ""
 
     @abstractmethod

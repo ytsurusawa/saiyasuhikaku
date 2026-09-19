@@ -21,11 +21,11 @@ class StubAdapter(PlatformAdapter):
         return list(self._offers)
 
 
-def make(platform, label, price, shipping, points=(), **kwargs):
+def make(platform, label, price, shipping, points=(), title=None, **kwargs):
     return Offer(
         platform=platform,
         platform_label=label,
-        title=f"{label}の商品",
+        title=title if title is not None else f"テスト商品 {label}",
         price=price,
         shipping=shipping,
         points=list(points),

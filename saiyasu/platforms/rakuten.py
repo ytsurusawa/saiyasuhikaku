@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 
+from ..matching import extract_models
 from ..models import Offer, PointReward, ShippingPolicy
 from .base import AdapterError, PlatformAdapter, SearchContext
 
@@ -97,6 +98,9 @@ class RakutenAdapter(PlatformAdapter):
             )
         ]
 
+        # 楽天APIはJANを返さないため、商品名から型番を推定して同定の手掛かりにする
+        models = extract_models(str(title))
+
         return Offer(
             platform=self.key,
             platform_label=self.label,
@@ -109,4 +113,5 @@ class RakutenAdapter(PlatformAdapter):
             in_stock=bool(item.get("availability", 1)),
             source="api",
             note=shipping.note if shipping.kind != "free" else "",
+            model_number=sorted(models)[0] if models else None,
         )

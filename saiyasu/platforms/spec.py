@@ -95,6 +95,8 @@ def offer_from_dict(
         delivery_days=int(data["delivery_days"]) if data.get("delivery_days") is not None else None,
         source=source,
         note=str(data.get("note") or ""),
+        jan=str(data["jan"]) if data.get("jan") else None,
+        model_number=str(data["model_number"]) if data.get("model_number") else None,
     )
 
 

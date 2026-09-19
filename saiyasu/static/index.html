@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>最安比較</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8F%B7%3C/text%3E%3C/svg%3E">
 <style>
   :root {
     color-scheme: light;
@@ -158,6 +159,15 @@
   .tooltip.on { opacity: 1; }
   .tooltip b { font-variant-numeric: tabular-nums; }
 
+  .badge-warn {
+    display: inline-block; font-size: .68rem; padding: 0 6px; border-radius: 999px;
+    border: 1px solid var(--series-2); color: var(--series-2); margin-left: 6px; vertical-align: 1px;
+  }
+  .excluded { font-size: .82rem; color: var(--text-secondary); }
+  .excluded > summary { cursor: pointer; font-weight: 600; color: var(--text-secondary); }
+  .excluded ul { padding-left: 18px; margin: 10px 0 0; }
+  .excluded li { margin-bottom: 6px; }
+  .excluded .why { color: var(--series-2); }
   .status { font-size: .8rem; color: var(--text-secondary); }
   .status li { margin-bottom: 3px; }
   .tag { display: inline-block; font-size: .68rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); margin-right: 6px; }
@@ -336,6 +346,8 @@ function detailTable(row) {
   if (row.shop) bits.push(`ショップ: ${esc(row.shop)}`);
   if (row.delivery_days != null) bits.push(`お届け目安 約${row.delivery_days}日`);
   if (row.condition !== "new") bits.push("中古・再生品");
+  if (row.jan) bits.push(`JAN: ${esc(row.jan)}`);
+  if (row.suspect_price) bits.push("価格が相場から大きく外れています（同一商品かご確認ください）");
   if (row.note) bits.push(esc(row.note));
   if (bits.length) html += `<p class="hint" style="margin:8px 0 0">${bits.join(" ／ ")}</p>`;
   if (row.url) html += `<p style="margin:6px 0 0"><a href="${esc(row.url)}" target="_blank" rel="noopener noreferrer">商品ページを開く →</a></p>`;
@@ -371,7 +383,9 @@ function render(data) {
     const r = el("div", "row" + (row.is_best ? " best" : ""));
     r.appendChild(el("div", "rank", row.is_best ? "★1" : String(row.rank)));
     r.appendChild(el("div", "pf",
-      `${esc(row.platform_label)}${row.condition !== "new" ? "（中古）" : ""}<small>${esc(row.shop || "")}</small>`));
+      `${esc(row.platform_label)}${row.condition !== "new" ? "（中古）" : ""}` +
+      `${row.suspect_price ? '<span class="badge-warn" title="価格が相場から大きく外れています">要確認</span>' : ""}` +
+      `<small>${esc(row.shop || "")}</small>`));
     r.appendChild(barFor(row, maxCash));
     r.appendChild(el("div", "eff",
       `${yen(b.effective_price)}<small>${row.is_best ? "最安" : "+" + yen(row.diff_from_best)}</small>`));
@@ -383,6 +397,24 @@ function render(data) {
     list.appendChild(r);
   }
   out.appendChild(list);
+
+  const m = data.matching;
+  if (m && m.excluded_count > 0) {
+    const box = el("div", "card");
+    const d = el("details", "excluded");
+    d.appendChild(el("summary", null,
+      `検索語と一致しないため除外した出品 ${m.excluded_count}件`));
+    let items = '<ul>';
+    for (const e of m.excluded) {
+      items += `<li>${esc(e.platform_label)}：${esc(e.title)}<br>
+        <span class="why">${esc(e.reason_label)}</span>
+        <span class="hint">— ${esc(e.detail)}</span></li>`;
+    }
+    items += '</ul><p class="hint" style="margin:10px 0 0">別の商品どうしを比べてしまわないよう、型番・JANコード・商品名の一致で絞り込んでいます。除外されすぎる場合は、型番まで入れた正確な商品名でお試しください。</p>';
+    d.appendChild(el("div", null, items));
+    box.appendChild(d);
+    out.appendChild(box);
+  }
 
   const info = el("div", "card");
   let html = '<div class="status"><strong style="font-size:.86rem">データの取得状況</strong><ul style="padding-left:18px;margin:8px 0 0">';
