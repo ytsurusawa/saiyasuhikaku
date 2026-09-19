@@ -1,0 +1,73 @@
+{
+  "_comment": "公開検索APIが無いサイト(価格.com・ヨドバシ・ビックカメラ・au PAYマーケット・Qoo10・メルカリ)の価格を手で入れるファイルです。data/manual_offers.json にコピーして使ってください。検索語は title / shop に対する部分一致で絞り込まれます。",
+  "kakaku": [
+    {
+      "title": "Anker Prime Charger 65W",
+      "price": 8480,
+      "shop": "最安ショップA（価格.com掲載）",
+      "url": "https://kakaku.com/item/XXXXXXXXXX/",
+      "shipping": { "kind": "flat", "fee": 800, "note": "ショップ個別送料" },
+      "points": [],
+      "delivery_days": 5,
+      "note": "保証・初期不良対応はショップごとに異なる"
+    }
+  ],
+  "yodobashi": [
+    {
+      "title": "Anker Prime Charger 65W",
+      "price": 8980,
+      "shop": "ヨドバシ.com",
+      "url": "https://www.yodobashi.com/product/XXXXXXXX/",
+      "shipping": { "kind": "free", "note": "全国送料無料" },
+      "points": [{ "label": "ゴールドポイント10%", "rate": 0.1 }],
+      "delivery_days": 1
+    }
+  ],
+  "biccamera": [
+    {
+      "title": "Anker Prime Charger 65W",
+      "price": 8980,
+      "shop": "ビックカメラ.com",
+      "shipping": { "kind": "conditional_free", "fee": 500, "free_threshold": 2000 },
+      "points": [{ "label": "ビックポイント10%", "rate": 0.1 }],
+      "delivery_days": 2
+    }
+  ],
+  "qoo10": [
+    {
+      "title": "Anker Prime Charger 65W",
+      "price": 9200,
+      "shop": "Qoo10公式ショップ",
+      "shipping": { "kind": "free" },
+      "points": [],
+      "coupon": 1840,
+      "delivery_days": 7,
+      "note": "メガ割20%クーポン適用時"
+    }
+  ],
+  "mercari": [
+    {
+      "title": "Anker Prime Charger 65W 美品",
+      "price": 6300,
+      "shop": "メルカリ出品者",
+      "shipping": { "kind": "free", "note": "送料込み出品" },
+      "points": [],
+      "condition": "used",
+      "delivery_days": 4,
+      "note": "中古。付属品・保証は要確認"
+    }
+  ],
+  "aupay": [
+    {
+      "title": "Anker Prime Charger 65W",
+      "price": 9480,
+      "shop": "au PAY マーケット出店ストア",
+      "shipping": { "kind": "conditional_free", "fee": 660, "free_threshold": 3980 },
+      "points": [
+        { "label": "Pontaポイント（基本1%）", "rate": 0.01 },
+        { "label": "お買い得市キャンペーン", "rate": 0.05, "limited": true, "cap": 3000 }
+      ],
+      "delivery_days": 4
+    }
+  ]
+}

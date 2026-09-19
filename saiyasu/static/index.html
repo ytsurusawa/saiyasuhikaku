@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最安比較</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-0: #f4f4f1;
+    --surface-1: #fcfcfb;
+    --surface-2: #eeeeea;
+    --border:    #dcdcd6;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #7a7975;
+    --accent:    #2a78d6;
+    --series-1:  #2a78d6;  /* 商品価格 */
+    --series-2:  #eb6834;  /* 送料・手数料 */
+    --series-3:  #1baf7a;  /* ポイント還元 */
+    --good-bg:   #e8f6ef;
+    --good-ink:  #0c5c40;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-0: #121211;
+      --surface-1: #1a1a19;
+      --surface-2: #232322;
+      --border:    #3a3a37;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #93928a;
+      --accent:    #3987e5;
+      --series-1:  #3987e5;
+      --series-2:  #d95926;
+      --series-3:  #199e70;
+      --good-bg:   #10322a;
+      --good-ink:  #7fd9b6;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #232322;
+    --border: #3a3a37; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #93928a; --accent: #3987e5;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    --good-bg: #10322a; --good-ink: #7fd9b6;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; letter-spacing: .01em; }
+  .lede { color: var(--text-secondary); margin: 0 0 24px; font-size: .92rem; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .searchrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .searchrow input[type=text] {
+    flex: 1 1 260px; min-width: 0;
+    padding: 12px 14px; font-size: 1rem;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface-2); color: var(--text-primary);
+  }
+  button.primary {
+    padding: 12px 22px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    border: none; border-radius: 10px; background: var(--accent); color: #fff;
+  }
+  button.primary:disabled { opacity: .55; cursor: progress; }
+
+  details.opts { margin-top: 14px; }
+  details.opts > summary {
+    cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--text-secondary);
+    padding: 6px 0;
+  }
+  .grid { display: grid; gap: 12px 20px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; }
+  .field label { color: var(--text-secondary); }
+  .field input[type=number] {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-2); color: var(--text-primary); font-size: .95rem;
+  }
+  .check { display: flex; align-items: center; gap: 8px; font-size: .88rem; color: var(--text-secondary); }
+  .hint { color: var(--text-muted); font-size: .76rem; }
+
+  .verdict { background: var(--good-bg); border: 1px solid var(--series-3); }
+  .verdict .crown { font-size: .8rem; font-weight: 700; color: var(--good-ink); letter-spacing: .08em; }
+  .verdict .headline { font-size: 1.7rem; font-weight: 700; margin: 4px 0 2px; }
+  .verdict .headline .amt { font-variant-numeric: tabular-nums; }
+  .verdict p { margin: 6px 0 0; color: var(--text-secondary); font-size: .9rem; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: .8rem; color: var(--text-secondary); margin-bottom: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .swatch.hatch { background-image: repeating-linear-gradient(45deg, var(--series-3) 0 3px, transparent 3px 6px); border: 1px solid var(--series-3); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 34px minmax(120px, 190px) 1fr minmax(96px, auto);
+    gap: 10px; align-items: center;
+    padding: 10px 6px; border-top: 1px solid var(--border);
+  }
+  .row:first-of-type { border-top: none; }
+  .rank { font-weight: 700; color: var(--text-muted); font-size: .9rem; text-align: center; }
+  .row.best .rank { color: var(--series-3); }
+  .pf { font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+  .pf small { display: block; font-weight: 400; color: var(--text-muted); font-size: .74rem; }
+
+  .bar { position: relative; height: 22px; display: flex; align-items: stretch; }
+  .seg { height: 100%; position: relative; }
+  .seg + .seg { margin-left: 2px; }
+  .seg:first-child { border-radius: 4px 0 0 4px; }
+  .seg:last-of-type { border-radius: 0 4px 4px 0; }
+  .seg.only { border-radius: 4px; }
+  .seg.item { background: var(--series-1); }
+  .seg.ship { background: var(--series-2); }
+  .pointback {
+    position: absolute; top: 0; bottom: 0; right: 0;
+    border: 1px solid var(--series-3); border-radius: 0 4px 4px 0;
+    background-image: repeating-linear-gradient(45deg, var(--series-3) 0 3px, transparent 3px 6px);
+    box-shadow: -2px 0 0 0 var(--surface-1);
+  }
+  .eff { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: .95rem; white-space: nowrap; }
+  .eff small { display: block; font-weight: 400; font-size: .72rem; color: var(--text-muted); }
+
+  table.detail { width: 100%; border-collapse: collapse; font-size: .84rem; margin-top: 8px; }
+  table.detail th, table.detail td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  table.detail th { text-align: left; font-weight: 500; color: var(--text-secondary); }
+  table.detail tr.total td, table.detail tr.total th { font-weight: 700; border-bottom: 2px solid var(--border); }
+  table.detail td.plus { color: var(--series-3); }
+
+  details.more { grid-column: 1 / -1; }
+  details.more > summary { cursor: pointer; font-size: .8rem; color: var(--accent); padding: 2px 0 2px 44px; list-style-position: inside; }
+  .detailbox { padding: 4px 6px 12px 44px; }
+  .detailbox a { color: var(--accent); word-break: break-all; }
+
+  .tooltip {
+    position: fixed; z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity .12s; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: .78rem; box-shadow: 0 6px 20px rgba(0,0,0,.18); max-width: 260px;
+  }
+  .tooltip.on { opacity: 1; }
+  .tooltip b { font-variant-numeric: tabular-nums; }
+
+  .status { font-size: .8rem; color: var(--text-secondary); }
+  .status li { margin-bottom: 3px; }
+  .tag { display: inline-block; font-size: .68rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); margin-right: 6px; }
+  .tag.api { border-color: var(--series-3); color: var(--series-3); }
+  .tag.demo { border-color: var(--series-2); color: var(--series-2); }
+  .warn { background: var(--surface-2); border-left: 3px solid var(--series-2); padding: 8px 12px; font-size: .82rem; color: var(--text-secondary); border-radius: 0 8px 8px 0; margin-top: 10px; }
+  .empty { color: var(--text-muted); text-align: center; padding: 28px 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .row { grid-template-columns: 26px 1fr minmax(84px, auto); row-gap: 8px; }
+    .rank { grid-column: 1; grid-row: 1; }
+    .pf   { grid-column: 2; grid-row: 1; }
+    .eff  { grid-column: 3; grid-row: 1; }
+    .bar  { grid-column: 1 / -1; grid-row: 2; }
+    details.more { grid-row: 3; }
+    details.more > summary, .detailbox { padding-left: 0; }
+    table.detail th, table.detail td { padding: 5px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>最安比較</h1>
+  <p class="lede">Amazon・楽天市場・Yahoo!ショッピング・価格.com など日本の主要通販を、<strong>送料込み・ポイント還元込みの「実質価格」</strong>で一括比較します。</p>
+
+  <form class="card" id="form">
+    <div class="searchrow">
+      <input type="text" id="query" placeholder="商品名を入力(例: Anker 充電器 65W)" autocomplete="off" required>
+      <button class="primary" type="submit" id="go">一括比較</button>
+    </div>
+
+    <details class="opts">
+      <summary>ポイント還元・配送の条件を設定する</summary>
+      <div class="grid">
+        <div class="field">
+          <label for="spu">楽天SPU 上乗せ(%)</label>
+          <input type="number" id="spu" value="0" min="0" max="30" step="0.5">
+          <span class="hint">会員ランクや対象サービスの合計倍率</span>
+        </div>
+        <div class="field">
+          <label for="kaimawari">楽天 買い回り店舗数</label>
+          <input type="number" id="kaimawari" value="0" min="0" max="20" step="1">
+          <span class="hint">n店舗で +(n-1)%(上限+9%)</span>
+        </div>
+        <div class="field">
+          <label for="paypay">PayPayステップ 上乗せ(%)</label>
+          <input type="number" id="paypay" value="0" min="0" max="30" step="0.5">
+        </div>
+        <div class="field">
+          <label for="amazoncard">Amazonカード還元(%)</label>
+          <input type="number" id="amazoncard" value="0" min="0" max="10" step="0.5">
+        </div>
+        <div class="field">
+          <label for="pv">通常ポイントの価値(円/pt)</label>
+          <input type="number" id="pv" value="1" min="0" max="1" step="0.05">
+        </div>
+        <div class="field">
+          <label for="lpv">期間限定ポイントの価値(円/pt)</label>
+          <input type="number" id="lpv" value="0.9" min="0" max="1" step="0.05">
+          <span class="hint">使い道が限られる分を割り引いて評価</span>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <label class="check"><input type="checkbox" id="lyp"> LYPプレミアム会員(+2%)</label>
+        <label class="check"><input type="checkbox" id="gonotsuku"> 5のつく日など(+4%)</label>
+        <label class="check"><input type="checkbox" id="prime"> Amazonプライム会員</label>
+        <label class="check"><input type="checkbox" id="remote"> 沖縄・離島(追加送料)</label>
+        <label class="check"><input type="checkbox" id="used"> 中古(メルカリ等)も含める</label>
+      </div>
+    </details>
+  </form>
+
+  <div id="out"></div>
+</div>
+
+<div class="tooltip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const yen = n => (n < 0 ? "-" : "") + "¥" + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const tip = document.getElementById("tip");
+function showTip(html, ev) {
+  tip.innerHTML = html;
+  tip.classList.add("on");
+  const pad = 12, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + "px";
+  tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => tip.classList.remove("on");
+
+function readProfile() {
+  const num = id => parseFloat(document.getElementById(id).value) || 0;
+  const on = id => document.getElementById(id).checked;
+  return {
+    point_value: num("pv"),
+    limited_point_value: num("lpv"),
+    rakuten_spu_rate: num("spu") / 100,
+    rakuten_kaimawari_shops: Math.round(num("kaimawari")),
+    lyp_premium: on("lyp"),
+    yahoo_day_campaign: on("gonotsuku"),
+    paypay_step_rate: num("paypay") / 100,
+    amazon_prime: on("prime"),
+    amazon_card_rate: num("amazoncard") / 100,
+    remote_area: on("remote"),
+    include_used: on("used"),
+  };
+}
+
+function barFor(row, maxCash) {
+  const b = row.breakdown;
+  const bar = el("div", "bar");
+  bar.setAttribute("role", "img");
+  bar.setAttribute("aria-label",
+    `${row.platform_label} 支払総額 ${yen(b.cash_total)}(商品 ${yen(b.item_price - b.coupon)}、送料・手数料 ${yen(b.shipping_fee + b.fee_total)})、ポイント還元 ${yen(b.point_value_yen)}相当、実質 ${yen(b.effective_price)}`);
+  bar.style.width = Math.max(4, (b.cash_total / maxCash) * 100) + "%";
+
+  const extra = b.shipping_fee + b.fee_total;
+  const itemPart = b.item_price - b.coupon;
+  const item = el("div", "seg item" + (extra > 0 ? "" : " only"));
+  item.style.flex = String(Math.max(itemPart, 1));
+  bar.appendChild(item);
+  if (extra > 0) {
+    const ship = el("div", "seg ship");
+    ship.style.flex = String(extra);
+    bar.appendChild(ship);
+  }
+  if (b.point_value_yen > 0) {
+    const back = el("div", "pointback");
+    back.style.width = Math.min(99, (b.point_value_yen / b.cash_total) * 100) + "%";
+    bar.appendChild(back);
+  }
+
+  const tipHtml = `<strong>${esc(row.platform_label)}</strong><br>
+    商品価格 <b>${yen(b.item_price)}</b>${b.coupon ? `<br>クーポン <b>-${yen(b.coupon)}</b>` : ""}<br>
+    送料 <b>${b.shipping_fee ? yen(b.shipping_fee) : "無料"}</b>${b.fee_total ? `<br>手数料 <b>${yen(b.fee_total)}</b>` : ""}<br>
+    支払総額 <b>${yen(b.cash_total)}</b><br>
+    ポイント <b>-${yen(b.point_value_yen)}</b> 相当<br>
+    <span style="color:var(--series-3)">実質 <b>${yen(b.effective_price)}</b></span>`;
+  bar.addEventListener("mousemove", e => showTip(tipHtml, e));
+  bar.addEventListener("mouseleave", hideTip);
+  return bar;
+}
+
+function shipNote(row, b) {
+  // 「無料」「660円」のような値と同じ文言は繰り返さず、補足があるときだけ添える
+  const label = String(row.shipping_label || "");
+  const value = b.shipping_fee ? yen(b.shipping_fee).replace("¥", "") + "円" : "無料";
+  if (!label || label === value || label === "無料") return "";
+  return esc(label);
+}
+
+function detailTable(row) {
+  const b = row.breakdown;
+  const lines = [
+    ["商品価格", yen(b.item_price), ""],
+    ...(b.coupon ? [["クーポン値引き", "-" + yen(b.coupon), ""]] : []),
+    ["送料", b.shipping_fee ? yen(b.shipping_fee) : "無料", shipNote(row, b)],
+    ...(b.fee_total ? [["その他手数料", yen(b.fee_total), ""]] : []),
+  ];
+  let html = '<table class="detail"><tbody>';
+  for (const [k, v, note] of lines) html += `<tr><th>${k}</th><td>${v}</td><td class="hint">${note}</td></tr>`;
+  html += `<tr class="total"><th>支払総額</th><td>${yen(b.cash_total)}</td><td></td></tr>`;
+  for (const p of b.points) {
+    html += `<tr><th>＋ ${esc(p.label)}${p.limited ? "（期間限定）" : ""}</th><td class="plus">${p.amount.toLocaleString("ja-JP")}pt</td><td class="hint">${yen(p.value_yen)}相当</td></tr>`;
+  }
+  if (!b.points.length) html += `<tr><th>ポイント還元</th><td>なし</td><td></td></tr>`;
+  html += `<tr class="total"><th>実質価格</th><td>${yen(b.effective_price)}</td><td class="hint">実質還元率 ${(b.effective_point_rate * 100).toFixed(1)}%</td></tr>`;
+  html += "</tbody></table>";
+
+  const bits = [];
+  if (row.shop) bits.push(`ショップ: ${esc(row.shop)}`);
+  if (row.delivery_days != null) bits.push(`お届け目安 約${row.delivery_days}日`);
+  if (row.condition !== "new") bits.push("中古・再生品");
+  if (row.note) bits.push(esc(row.note));
+  if (bits.length) html += `<p class="hint" style="margin:8px 0 0">${bits.join(" ／ ")}</p>`;
+  if (row.url) html += `<p style="margin:6px 0 0"><a href="${esc(row.url)}" target="_blank" rel="noopener noreferrer">商品ページを開く →</a></p>`;
+  return html;
+}
+
+function render(data) {
+  const out = document.getElementById("out");
+  out.innerHTML = "";
+
+  if (!data.results.length) {
+    out.appendChild(el("div", "card empty", esc(data.warnings[0] || "該当する出品が見つかりませんでした。")));
+    return;
+  }
+
+  const best = data.best;
+  const v = el("div", "card verdict");
+  v.innerHTML = `<div class="crown">★ 最もお得</div>
+    <div class="headline">${esc(best.platform_label)} <span class="amt">${yen(best.breakdown.effective_price)}</span></div>
+    <p>${esc(data.verdict)}</p>`;
+  out.appendChild(v);
+
+  const list = el("div", "card");
+  list.appendChild(el("div", "legend",
+    `<span><i class="swatch" style="background:var(--series-1)"></i>商品価格</span>
+     <span><i class="swatch" style="background:var(--series-2)"></i>送料・手数料</span>
+     <span><i class="swatch hatch"></i>ポイント還元（戻る分）</span>
+     <span class="hint">バーの長さ＝支払総額／太字＝実質価格</span>`));
+
+  const maxCash = Math.max(...data.results.map(r => r.breakdown.cash_total));
+  for (const row of data.results) {
+    const b = row.breakdown;
+    const r = el("div", "row" + (row.is_best ? " best" : ""));
+    r.appendChild(el("div", "rank", row.is_best ? "★1" : String(row.rank)));
+    r.appendChild(el("div", "pf",
+      `${esc(row.platform_label)}${row.condition !== "new" ? "（中古）" : ""}<small>${esc(row.shop || "")}</small>`));
+    r.appendChild(barFor(row, maxCash));
+    r.appendChild(el("div", "eff",
+      `${yen(b.effective_price)}<small>${row.is_best ? "最安" : "+" + yen(row.diff_from_best)}</small>`));
+
+    const more = el("details", "more");
+    more.appendChild(el("summary", null, "内訳を見る"));
+    more.appendChild(el("div", "detailbox", detailTable(row)));
+    r.appendChild(more);
+    list.appendChild(r);
+  }
+  out.appendChild(list);
+
+  const info = el("div", "card");
+  let html = '<div class="status"><strong style="font-size:.86rem">データの取得状況</strong><ul style="padding-left:18px;margin:8px 0 0">';
+  const label = { api: ["api", "実データ"], manual: ["api", "手動入力"], demo: ["demo", "サンプル"], none: ["", "取得なし"] };
+  for (const s of data.statuses) {
+    const [cls, txt] = label[s.source] || ["", s.source];
+    html += `<li><span class="tag ${cls}">${txt}</span>${esc(s.label)}: ${s.offer_count}件 <span class="hint">${esc(s.message)}</span></li>`;
+  }
+  html += "</ul></div>";
+  info.innerHTML = html;
+  for (const w of data.warnings) info.appendChild(el("div", "warn", "※ " + esc(w)));
+  out.appendChild(info);
+}
+
+document.getElementById("form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const query = document.getElementById("query").value.trim();
+  if (!query) return;
+  const go = document.getElementById("go");
+  const out = document.getElementById("out");
+  go.disabled = true;
+  out.innerHTML = '<div class="card empty">比較中…</div>';
+  try {
+    const resp = await fetch("/api/compare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, profile: readProfile(), per_platform: 1 }),
+    });
+    if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || resp.statusText);
+    render(await resp.json());
+  } catch (e) {
+    out.innerHTML = `<div class="card empty">比較に失敗しました: ${esc(e.message)}</div>`;
+  } finally {
+    go.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
